@@ -21,9 +21,13 @@ app.use("/api/payments/webhook",
 );
 
 app.use(express.json());
+
 app.use(cors({
-  origin:"https://hostel-frontend-topaz.vercel.app/",
-  credentials:true
+  origin: [
+    "http://localhost:5173",
+    "https://hostel-frontend-topaz.vercel.app"
+  ],
+  credentials: true
 }));
 
 app.use("/api/auth", authRoutes);
