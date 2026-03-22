@@ -152,3 +152,37 @@ export const getAvailableRooms = async (req, res) => {
     res.status(500).json({ message: "Error fetching available rooms" });
   }
 };
+
+//Edit Room By Id
+export const getRoomById = async (req, res) => {
+  try {
+    const room = await Room.findById(req.params.id);
+
+    if (!room) {
+      return res.status(404).json({ message: "Room not found" });
+    }
+
+    res.status(200).json(room);
+  } catch (error) {
+    res.status(500).json({ message: "Error fetching room" });
+  }
+};
+
+//Update Room
+export const updateRoom = async (req, res) => {
+  try {
+    const room = await Room.findByIdAndUpdate(
+      req.params.id,
+      req.body,
+      { new: true }
+    );
+
+    if (!room) {
+      return res.status(404).json({ message: "Room not found" });
+    }
+
+    res.status(200).json(room);
+  } catch (error) {
+    res.status(500).json({ message: "Error updating room" });
+  }
+};

@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { type } from "os";
 
 const roomSchema = new mongoose.Schema({
     roomNumber:{
@@ -19,6 +20,15 @@ const roomSchema = new mongoose.Schema({
     occupied:{
         type:Number,
         default:0,
+    },
+    price:{
+        type:Number,
+    },
+    image:{
+        type:String,
+    },
+    facilities:{
+        type:[String],
     },
     residents:[
         {
