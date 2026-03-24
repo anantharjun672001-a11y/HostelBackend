@@ -207,3 +207,19 @@ export const deleteRoom = async (req, res) => {
     res.status(500).json({ message: "Delete failed" });
   }
 };
+
+// Delete Resident
+export const deleteResident = async (req, res) => {
+  try {
+    const resident = await Resident.findByIdAndDelete(req.params.id);
+
+    if (!resident) {
+      return res.status(404).json({ message: "Resident not found" });
+    }
+
+    res.json({ message: "Resident deleted successfully" });
+
+  } catch (error) {
+    res.status(500).json({ message: "Error deleting resident" });
+  }
+};
