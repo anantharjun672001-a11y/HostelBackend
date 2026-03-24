@@ -58,10 +58,14 @@ app.post("/api/upload", async (req, res) => {
       file.tempFilePath
     );
 
-    res.json({ url: result.secure_url });
+    return res.status(200).json({ url: result.secure_url });
+
   } catch (error) {
     console.log("UPLOAD ERROR FULL:", error);
     console.log("MESSAGE:", error.message);
+
+    
+    return res.status(500).json({ message: "Image upload failed" });
   }
 });
 
