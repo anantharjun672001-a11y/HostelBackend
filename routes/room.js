@@ -12,7 +12,7 @@ router.post("/vacate",verifyToken,vacateRoom);
 router.get("/available",getAvailableRooms);
 router.get("/:id", verifyToken, getRoomById);
 router.put("/:id", verifyToken, allowRoles("admin","staff"), updateRoom);
-router.delete("/delete/:id",deleteRoom);
+router.delete("/:id", deleteRoom);
 
 
 export default router;
