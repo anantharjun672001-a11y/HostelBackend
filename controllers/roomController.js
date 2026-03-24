@@ -190,8 +190,6 @@ export const updateRoom = async (req, res) => {
 
 //Delete Room
 
-import Room from "../models/Room.js";
-
 export const deleteRoom = async (req, res) => {
   try {
     const { id } = req.params;
