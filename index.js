@@ -84,7 +84,7 @@ mongoose
 
 // TEST ROUTE
 app.get("/", (req, res) => {
-  res.send("Hostel API Running 🚀");
+  res.send("Hostel API Running ");
 });
 
 // SERVER START
