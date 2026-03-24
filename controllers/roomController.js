@@ -186,3 +186,26 @@ export const updateRoom = async (req, res) => {
     res.status(500).json({ message: "Error updating room" });
   }
 };
+
+
+//Delete Room
+
+import Room from "../models/Room.js";
+
+export const deleteRoom = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const room = await Room.findByIdAndDelete(id);
+
+    if (!room) {
+      return res.status(404).json({ message: "Room not found" });
+    }
+
+    res.json({ message: "Room deleted successfully" });
+    console.log("DELETE HIT", req.params.id);
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ message: "Delete failed" });
+  }
+};

@@ -1,6 +1,6 @@
 import express from "express";
 import { verifyToken , allowRoles } from "../middleware/authMiddleware.js";
-import { assignRoom, createRoom, getAvailableRooms, getRoomById, getRooms, updateRoom, vacateRoom } from "../controllers/roomController.js";
+import { assignRoom, createRoom, deleteRoom, getAvailableRooms, getRoomById, getRooms, updateRoom, vacateRoom } from "../controllers/roomController.js";
 
 
 const router = express.Router();
@@ -12,6 +12,7 @@ router.post("/vacate",verifyToken,vacateRoom);
 router.get("/available",getAvailableRooms);
 router.get("/:id", verifyToken, getRoomById);
 router.put("/:id", verifyToken, allowRoles("admin","staff"), updateRoom);
+router.delete("/delete/:id",deleteRoom);
 
 
 export default router;
