@@ -1,6 +1,8 @@
 import crypto from "crypto";
 import Payment from "../models/Payment.js";
 import Bill from "../models/Bill.js";
+import Resident from "../models/Resident.js";
+import Room from "../models/Room.js";
 
 export const razorpayWebhook = async (req, res) => {
 
@@ -63,4 +65,64 @@ export const razorpayWebhook = async (req, res) => {
 
   }
 
+};
+
+
+export const payRent = async (req, res) => {
+  try {
+
+    const userId = req.user.id;
+    const { roomId } = req.body;
+
+    const resident = await Resident.findOne({ userId });
+
+    const room = await Room.findById(roomId);
+
+    if (!room) {
+      return res.status(404).json({ message: "Room not found" });
+    }
+
+    let amount = room.price;
+
+    // FIRST TIME PAYMENT
+    if (!resident || !resident.hasPaidAdvance) {
+      amount = room.price * 2;
+    }
+
+    // CREATE BILL
+    await Bill.create({
+      resident: resident?._id,
+      room: room._id,
+      total: amount,
+      status: "paid",
+      month: new Date().toISOString().slice(0, 7)
+    });
+
+    // ASSIGN ROOM
+    if (!resident) {
+
+      await Resident.create({
+        userId,
+        room: room._id,
+        hasPaidAdvance: true
+      });
+
+    } else {
+
+      resident.room = room._id;
+      resident.hasPaidAdvance = true;
+      await resident.save();
+
+    }
+
+    // UPDATE ROOM
+    room.occupied += 1;
+    await room.save();
+
+    res.json({ message: "Payment successful", amount });
+
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ message: "Payment failed" });
+  }
 };

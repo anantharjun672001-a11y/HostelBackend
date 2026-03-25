@@ -3,7 +3,7 @@ import mongoose from "mongoose";
 const paymentSchema = new mongoose.Schema({
     residentId:{
         type:mongoose.Schema.Types.ObjectId,
-        ref:"User"
+        ref: "Resident"
     },
     billId:{
         type:mongoose.Schema.Types.ObjectId,

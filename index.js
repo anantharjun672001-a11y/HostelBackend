@@ -19,10 +19,8 @@ dotenv.config();
 const app = express();
 
 
-app.use(
-  "/api/payments/webhook",
-  express.raw({ type: "application/json" })
-);
+
+app.use("/api/payments", express.raw({ type: "application/json" }));
 
 // Middlewares
 app.use(express.json());
