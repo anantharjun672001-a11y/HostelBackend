@@ -13,6 +13,7 @@ import paymentRoutes from "./routes/payment.js";
 import dashboardRoutes from "./routes/dashboard.js";
 import notificationRoutes from "./routes/notification.js";
 import adminRoutes from "./routes/adminRoute.js";
+import { razorpayWebhook } from "./controllers/paymentController.js";
 
 dotenv.config();
 
@@ -20,7 +21,11 @@ const app = express();
 
 
 
-app.use("/api/payments", express.raw({ type: "application/json" }));
+app.post(
+  "/api/payments/webhook",
+  express.raw({ type: "application/json" }),
+  razorpayWebhook
+);
 
 // Middlewares
 app.use(express.json());
