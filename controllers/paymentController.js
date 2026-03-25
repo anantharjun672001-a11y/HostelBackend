@@ -71,6 +71,10 @@ export const razorpayWebhook = async (req, res) => {
 export const payRent = async (req, res) => {
   try {
 
+    if (!req.user) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
     const userId = req.user.id;
     const { roomId } = req.body;
 
@@ -82,32 +86,31 @@ export const payRent = async (req, res) => {
       return res.status(404).json({ message: "Room not found" });
     }
 
-    // ROOM FULL CHECK
     if (room.occupied >= room.capacity) {
       return res.status(400).json({ message: "Room full" });
     }
 
-    // CREATE RESIDENT FIRST IF NOT EXISTS
+    
     if (!resident) {
       resident = await Resident.create({
         userId,
+        phone: "0000000000",
+        address: "Default",
+        emergencyContact: "Default",
         hasPaidAdvance: false
       });
     }
 
-    // DUPLICATE ROOM CHECK
     if (resident.room) {
-      return res.status(400).json({ message: "Already booked room" });
+      return res.status(400).json({ message: "Already booked" });
     }
 
     let amount = room.price;
 
-    // FIRST TIME PAYMENT
     if (!resident.hasPaidAdvance) {
       amount = room.price * 2;
     }
 
-    
     await Bill.create({
       resident: resident._id,
       room: room._id,
@@ -116,12 +119,10 @@ export const payRent = async (req, res) => {
       month: new Date().toISOString().slice(0, 7)
     });
 
-    // ASSIGN ROOM
     resident.room = room._id;
     resident.hasPaidAdvance = true;
     await resident.save();
 
-    
     room.occupied += 1;
     await room.save();
 
@@ -132,7 +133,7 @@ export const payRent = async (req, res) => {
 
   } catch (error) {
 
-    console.log("PAYMENT ERROR:", error);
+    console.log("PAYMENT ERROR FULL:", error);
 
     res.status(500).json({ message: "Payment failed" });
 
