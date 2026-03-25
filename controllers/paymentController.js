@@ -74,7 +74,7 @@ export const payRent = async (req, res) => {
     const userId = req.user.id;
     const { roomId } = req.body;
 
-    const resident = await Resident.findOne({ userId });
+    let resident = await Resident.findOne({ userId });
 
     const room = await Room.findById(roomId);
 
@@ -82,16 +82,34 @@ export const payRent = async (req, res) => {
       return res.status(404).json({ message: "Room not found" });
     }
 
+    // ROOM FULL CHECK
+    if (room.occupied >= room.capacity) {
+      return res.status(400).json({ message: "Room full" });
+    }
+
+    // CREATE RESIDENT FIRST IF NOT EXISTS
+    if (!resident) {
+      resident = await Resident.create({
+        userId,
+        hasPaidAdvance: false
+      });
+    }
+
+    // DUPLICATE ROOM CHECK
+    if (resident.room) {
+      return res.status(400).json({ message: "Already booked room" });
+    }
+
     let amount = room.price;
 
     // FIRST TIME PAYMENT
-    if (!resident || !resident.hasPaidAdvance) {
+    if (!resident.hasPaidAdvance) {
       amount = room.price * 2;
     }
 
-    // CREATE BILL
+    
     await Bill.create({
-      resident: resident?._id,
+      resident: resident._id,
       room: room._id,
       total: amount,
       status: "paid",
@@ -99,30 +117,24 @@ export const payRent = async (req, res) => {
     });
 
     // ASSIGN ROOM
-    if (!resident) {
+    resident.room = room._id;
+    resident.hasPaidAdvance = true;
+    await resident.save();
 
-      await Resident.create({
-        userId,
-        room: room._id,
-        hasPaidAdvance: true
-      });
-
-    } else {
-
-      resident.room = room._id;
-      resident.hasPaidAdvance = true;
-      await resident.save();
-
-    }
-
-    // UPDATE ROOM
+    
     room.occupied += 1;
     await room.save();
 
-    res.json({ message: "Payment successful", amount });
+    res.json({
+      message: "Payment successful",
+      amount
+    });
 
   } catch (error) {
-    console.log(error);
+
+    console.log("PAYMENT ERROR:", error);
+
     res.status(500).json({ message: "Payment failed" });
+
   }
 };
