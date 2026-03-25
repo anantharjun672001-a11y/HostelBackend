@@ -114,6 +114,7 @@ export const payRent = async (req, res) => {
     await Bill.create({
       resident: resident._id,
       room: room._id,
+      rent: room.price, 
       total: amount,
       status: "paid",
       month: new Date().toISOString().slice(0, 7)
