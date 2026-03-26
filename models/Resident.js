@@ -9,15 +9,15 @@ const residentSchema = new mongoose.Schema(
     },
     phone: {
       type: String,
-      required: true,
+      default: "",
     },
     emergencyContact: {
       type: String,
-      required: true,
+      default: "",
     },
     address: {
       type: String,
-      required: true,
+      default: "",
     },
     checkIn: {
       type: Date,
@@ -41,3 +41,4 @@ const residentSchema = new mongoose.Schema(
 const Resident = mongoose.model("Resident", residentSchema);
 
 export default Resident;
+
