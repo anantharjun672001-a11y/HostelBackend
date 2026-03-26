@@ -137,3 +137,5 @@ export const deleteResident = async (req, res) => {
 };
 
 
+
+
