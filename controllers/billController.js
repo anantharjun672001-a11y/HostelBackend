@@ -265,18 +265,23 @@ export const verifyPayment = async (req, res) => {
       return res.status(400).json({ message: "Payment verification failed" });
     }
 
-    // find bill using order id
     const bill = await Bill.findOne({ receipt: razorpay_order_id });
 
     if (!bill) {
       return res.status(404).json({ message: "Bill not found" });
     }
 
+    
+    if (bill.status === "paid") {
+      return res.status(400).json({ message: "Already paid" });
+    }
+
+    
     bill.status = "paid";
     bill.paymentDate = new Date();
-
     await bill.save();
 
+    
     await Payment.create({
       residentId: bill.resident,
       billId: bill._id,
@@ -287,8 +292,29 @@ export const verifyPayment = async (req, res) => {
       method: "Razorpay"
     });
 
+    
+    const resident = await Resident.findById(bill.resident);
+    const room = await Room.findById(bill.room);
+
+    if (resident && room) {
+
+      // prevent duplicate assign
+      if (!resident.room) {
+
+        resident.room = room._id;
+        resident.hasPaidAdvance = true;
+
+        await resident.save();
+
+        room.occupied += 1;
+        room.residents.push(resident._id);
+
+        await room.save();
+      }
+    }
+
     res.status(200).json({
-      message: "Payment verified and stored"
+      message: "Payment verified + room assigned"
     });
 
   } catch (error) {

@@ -78,7 +78,7 @@ export const createOrder = async (req, res) => {
 
 // WEBHOOK
 
-export const razorpayWebhook = async (req, res) => {
+/* export const razorpayWebhook = async (req, res) => {
   console.log(" WEBHOOK HIT");
   try {
     const secret = process.env.RAZORPAY_WEBHOOK_SECRET;
@@ -142,3 +142,4 @@ export const razorpayWebhook = async (req, res) => {
   }
 };
 
+ */
