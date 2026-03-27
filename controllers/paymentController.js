@@ -64,6 +64,10 @@ export const createOrder = async (req, res) => {
       },
     });
 
+    // update bill with razorpay order id
+    bill.receipt = order.id;
+    await bill.save();
+
     res.json({
       orderId: order.id,
       amount,

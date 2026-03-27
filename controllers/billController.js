@@ -251,7 +251,8 @@ export const verifyPayment = async (req, res) => {
     const {
       razorpay_payment_id,
       razorpay_order_id,
-      razorpay_signature
+      razorpay_signature,
+      billId
     } = req.body;
 
     const body = razorpay_order_id + "|" + razorpay_payment_id;
@@ -265,23 +266,22 @@ export const verifyPayment = async (req, res) => {
       return res.status(400).json({ message: "Payment verification failed" });
     }
 
-    const bill = await Bill.findOne({ receipt: razorpay_order_id });
+    const bill = await Bill.findById(billId);
 
     if (!bill) {
       return res.status(404).json({ message: "Bill not found" });
     }
 
-    
     if (bill.status === "paid") {
       return res.status(400).json({ message: "Already paid" });
     }
 
-    
+    // update bill
     bill.status = "paid";
     bill.paymentDate = new Date();
     await bill.save();
 
-    
+    // save payment
     await Payment.create({
       residentId: bill.resident,
       billId: bill._id,
@@ -296,35 +296,21 @@ export const verifyPayment = async (req, res) => {
     const resident = await Resident.findById(bill.resident);
     const room = await Room.findById(bill.room);
 
-    if (resident && room) {
+    if (resident && room && !resident.room) {
+      resident.room = room._id;
+      resident.hasPaidAdvance = true;
+      await resident.save();
 
-      // prevent duplicate assign
-      if (!resident.room) {
-
-        resident.room = room._id;
-        resident.hasPaidAdvance = true;
-
-        await resident.save();
-
-        room.occupied += 1;
-        room.residents.push(resident._id);
-
-        await room.save();
-      }
+      room.occupied += 1;
+      room.residents.push(resident._id);
+      await room.save();
     }
 
-    res.status(200).json({
-      message: "Payment verified + room assigned"
-    });
+    res.json({ message: "Payment success + updated" });
 
   } catch (error) {
-
-    console.log("VERIFY PAYMENT ERROR:", error);
-
-    res.status(500).json({
-      message: "Payment verification error"
-    });
-
+    console.log(error);
+    res.status(500).json({ message: "Error verifying payment" });
   }
 };
 
