@@ -38,7 +38,7 @@ export const createBill = async (req, res) => {
 
     const bill = await Bill.create({
       resident: residentId,
-      room: resident.room,
+      room: resident.room || null,
       month,
       rent,
       utilities,
@@ -210,10 +210,17 @@ export const revenueReport = async (req,res)=>{
 // Razorpay → Create Order
 export const createOrder = async (req, res) => {
   try {
+
     const bill = await Bill.findById(req.params.id);
 
     if (!bill) {
       return res.status(404).json({ message: "Bill not found" });
+    }
+
+    if (!bill.room) {
+      return res.status(400).json({
+        message: "Room not linked to bill"
+      });
     }
 
     if (bill.status === "paid") {
@@ -224,19 +231,24 @@ export const createOrder = async (req, res) => {
       amount: bill.total * 100,
       currency: "INR",
       receipt: bill._id.toString(),
-
       notes: {
         billId: bill._id.toString(),
-        residentId: bill.resident.toString(),
       },
     };
 
     const order = await razorpay.orders.create(options);
 
+    
     bill.receipt = order.id;
     await bill.save();
 
-    res.status(200).json(order);
+    res.status(200).json({
+      id: order.id,        
+      amount: options.amount,
+      currency: "INR",
+      billId: bill._id     
+    });
+
   } catch (error) {
     console.log(error);
     res.status(500).json({ message: "Error Creating Order" });
@@ -247,6 +259,8 @@ export const createOrder = async (req, res) => {
 
 export const verifyPayment = async (req, res) => {
   try {
+
+    console.log("VERIFY BODY:", req.body);
 
     const {
       razorpay_payment_id,
@@ -276,12 +290,12 @@ export const verifyPayment = async (req, res) => {
       return res.status(400).json({ message: "Already paid" });
     }
 
-    // update bill
+    // BILL UPDATE
     bill.status = "paid";
     bill.paymentDate = new Date();
     await bill.save();
 
-    // save payment
+    // SAVE PAYMENT
     await Payment.create({
       residentId: bill.resident,
       billId: bill._id,
@@ -292,28 +306,35 @@ export const verifyPayment = async (req, res) => {
       method: "Razorpay"
     });
 
-    
+    // ROOM ASSIGN 
     const resident = await Resident.findById(bill.resident);
     const room = await Room.findById(bill.room);
 
-    if (resident && room && !resident.room) {
+    if (resident && room) {
+
       resident.room = room._id;
       resident.hasPaidAdvance = true;
       await resident.save();
 
-      room.occupied += 1;
-      room.residents.push(resident._id);
-      await room.save();
+      // prevent duplicate push
+      if (!room.residents.includes(resident._id)) {
+        room.residents.push(resident._id);
+        room.occupied += 1;
+        await room.save();
+      }
     }
 
-    res.json({ message: "Payment success + updated" });
+    console.log("PAYMENT + ROOM ASSIGNED");
+
+    res.status(200).json({
+      message: "Payment success + room assigned"
+    });
 
   } catch (error) {
-    console.log(error);
+    console.log("VERIFY ERROR:", error);
     res.status(500).json({ message: "Error verifying payment" });
   }
 };
-
 //Generate Invoice
 
 export const generateInvoice = async (req, res) => {
