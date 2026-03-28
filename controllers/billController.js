@@ -60,7 +60,7 @@ export const createBill = async (req, res) => {
   } catch (error) {
     console.log(error);
     res.status(500).json({
-      message: "Error Creating Bill",
+      message: "Error to Creating Bill",
       error: error.message,
     });
   }
@@ -71,6 +71,7 @@ export const createBill = async (req, res) => {
 export const getBills = async (req,res)=>{
 
  const bills = await Bill.find()
+   .populate("room", "roomNumber")
    .populate({
      path:"resident",
      populate:[
@@ -97,6 +98,7 @@ export const getMyBill = async (req,res)=>{
     }
 
     const bills = await Bill.find({ resident: resident._id })
+      .populate("room", "roomNumber")
       .populate({
         path:"resident",
         populate:{
@@ -123,6 +125,7 @@ export const paymentHistory = async (req,res)=>{
  try{
 
   const payments = await Bill.find({ status:"paid" })
+   .populate("room", "roomNumber")
    .populate({
      path:"resident",
      populate:[
@@ -134,12 +137,13 @@ export const paymentHistory = async (req,res)=>{
 
   res.status(200).json(payments);
 
+
  }catch(error){
 
   console.log(error);
 
   res.status(500).json({
-   message:"Error fetching payments"
+   message:"Error to fetching payments"
   });
 
  }
@@ -238,11 +242,11 @@ export const createOrder = async (req, res) => {
 
     const order = await razorpay.orders.create(options);
 
-    // 🔥 IMPORTANT
+    
     bill.receipt = order.id;
     await bill.save();
 
-    // ✅ ONLY ONE RESPONSE
+    
     res.status(200).json({
       id: order.id,
       amount: options.amount,
@@ -332,6 +336,7 @@ export const generateInvoice = async (req, res) => {
   try {
 
     const bill = await Bill.findById(req.params.id)
+      .populate("room", "roomNumber")
       .populate({
         path: "resident",
         populate: {
@@ -364,7 +369,7 @@ export const generateInvoice = async (req, res) => {
 
     doc.text(`Resident Phone: ${bill.resident?.phone || "-"}`);
 
-    doc.text(`Room Number: ${bill.resident?.room?.roomNumber || "-"}`);
+    doc.text(`Room Number: ${bill.room?.roomNumber || "-"}`);
 
     doc.text(`Month: ${bill.month}`);
 

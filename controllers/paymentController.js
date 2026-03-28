@@ -37,6 +37,16 @@ export const createOrder = async (req, res) => {
       });
     }
 
+    if (resident.room) {
+      const currentRoom = await Room.findById(resident.room).select("roomNumber");
+
+      return res.status(400).json({
+        message: currentRoom?.roomNumber
+          ? `You are already staying in Room ${currentRoom.roomNumber}. Vacate your current room before booking another one.`
+          : "You are already staying in a room. Vacate your current room before booking another one.",
+      });
+    }
+
     let amount = room.price;
 
     // first payment → advance + rent
