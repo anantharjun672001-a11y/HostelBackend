@@ -1,9 +1,9 @@
 import crypto from "crypto";
 import Razorpay from "razorpay";
-import Payment from "../models/Payment.js";
 import Bill from "../models/Bill.js";
 import Resident from "../models/Resident.js";
 import Room from "../models/Room.js";
+import { finalizeBillPayment } from "../utils/paymentFinalizer.js";
 
 
 const razorpay = new Razorpay({
@@ -82,7 +82,7 @@ export const createOrder = async (req, res) => {
 
 // WEBHOOK
 
-/* export const razorpayWebhook = async (req, res) => {
+export const razorpayWebhook = async (req, res) => {
   console.log(" WEBHOOK HIT");
   try {
     const secret = process.env.RAZORPAY_WEBHOOK_SECRET;
@@ -105,37 +105,14 @@ export const createOrder = async (req, res) => {
 
       const billId = payment.notes.billId;
 
-      const bill = await Bill.findById(billId);
-
-      if (bill) {
-        // mark bill paid
-        bill.status = "paid";
-        bill.paymentDate = new Date();
-        await bill.save();
-
-        // save payment
-        await Payment.create({
-          residentId: bill.resident,
-          billId: bill._id,
-          amount: bill.total,
+      if (billId) {
+        await finalizeBillPayment({
+          billId,
           paymentId: payment.id,
           orderId: payment.order_id,
-          status: "Success",
           method: payment.method,
+          paymentDate: new Date(),
         });
-
-        // assign room AFTER payment
-        const resident = await Resident.findById(bill.resident);
-        const room = await Room.findById(bill.room);
-
-        if (resident && room) {
-          resident.room = room._id;
-          resident.hasPaidAdvance = true;
-          await resident.save();
-
-          room.occupied += 1;
-          await room.save();
-        }
       }
     }
 
@@ -146,4 +123,4 @@ export const createOrder = async (req, res) => {
   }
 };
 
- */
+ 

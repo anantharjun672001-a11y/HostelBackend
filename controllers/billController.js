@@ -5,7 +5,7 @@ import razorpay from "../utils/razorpay.js";
 import crypto from "crypto";
 import PDFDocument from "pdfkit";
 import Notification from "../models/Notification.js";
-import Payment from "../models/Payment.js";
+import { finalizeBillPayment } from "../utils/paymentFinalizer.js";
 
 dotenv.config();
 
@@ -238,15 +238,16 @@ export const createOrder = async (req, res) => {
 
     const order = await razorpay.orders.create(options);
 
-    
+    // 🔥 IMPORTANT
     bill.receipt = order.id;
     await bill.save();
 
+    // ✅ ONLY ONE RESPONSE
     res.status(200).json({
-      id: order.id,        
+      id: order.id,
       amount: options.amount,
       currency: "INR",
-      billId: bill._id     
+      billId: bill._id
     });
 
   } catch (error) {
@@ -259,15 +260,21 @@ export const createOrder = async (req, res) => {
 
 export const verifyPayment = async (req, res) => {
   try {
-
-    console.log("VERIFY BODY:", req.body);
-
     const {
       razorpay_payment_id,
       razorpay_order_id,
       razorpay_signature,
-      billId
+      billId,
     } = req.body;
+
+    console.log("VERIFY BODY:", req.body);
+
+    if (!razorpay_payment_id || !razorpay_order_id || !razorpay_signature) {
+      return res.status(400).json({
+        success: false,
+        message: "Missing Razorpay payment details",
+      });
+    }
 
     const body = razorpay_order_id + "|" + razorpay_payment_id;
 
@@ -277,62 +284,46 @@ export const verifyPayment = async (req, res) => {
       .digest("hex");
 
     if (expectedSignature !== razorpay_signature) {
-      return res.status(400).json({ message: "Payment verification failed" });
+      return res.status(400).json({
+        success: false,
+        message: "Payment verification failed",
+      });
     }
 
-    const bill = await Bill.findById(billId);
+    const bill = billId
+      ? await Bill.findById(billId)
+      : await Bill.findOne({ receipt: razorpay_order_id });
 
     if (!bill) {
-      return res.status(404).json({ message: "Bill not found" });
+      return res.status(404).json({
+        success: false,
+        message: "Bill not found",
+      });
     }
 
-    if (bill.status === "paid") {
-      return res.status(400).json({ message: "Already paid" });
-    }
-
-    // BILL UPDATE
-    bill.status = "paid";
-    bill.paymentDate = new Date();
-    await bill.save();
-
-    // SAVE PAYMENT
-    await Payment.create({
-      residentId: bill.resident,
+    await finalizeBillPayment({
       billId: bill._id,
-      amount: bill.total,
       paymentId: razorpay_payment_id,
       orderId: razorpay_order_id,
-      status: "Success",
-      method: "Razorpay"
+      method: "Razorpay",
     });
-
-    // ROOM ASSIGN 
-    const resident = await Resident.findById(bill.resident);
-    const room = await Room.findById(bill.room);
-
-    if (resident && room) {
-
-      resident.room = room._id;
-      resident.hasPaidAdvance = true;
-      await resident.save();
-
-      // prevent duplicate push
-      if (!room.residents.includes(resident._id)) {
-        room.residents.push(resident._id);
-        room.occupied += 1;
-        await room.save();
-      }
-    }
 
     console.log("PAYMENT + ROOM ASSIGNED");
 
     res.status(200).json({
-      message: "Payment success + room assigned"
+      success: true,
+      message: "Payment success + room assigned",
+      billId: bill._id,
+      status: "paid",
     });
 
   } catch (error) {
     console.log("VERIFY ERROR:", error);
-    res.status(500).json({ message: "Error verifying payment" });
+    res.status(500).json({
+      success: false,
+      message: "Error verifying payment",
+      error: error.message,
+    });
   }
 };
 //Generate Invoice
