@@ -3,6 +3,7 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
 import Resident from "../models/Resident.js";
+import Bill from "../models/Bill.js";
 
 dotenv.config();
 
@@ -52,6 +53,7 @@ export const assignRoom = async (req, res) => {
     }
 
     let resident;
+    let isSelfAssign = false;
 
     // ADMIN / STAFF assign
     if (residentId) {
@@ -59,6 +61,7 @@ export const assignRoom = async (req, res) => {
     } 
     // RESIDENT self assign
     else {
+      isSelfAssign = true;
       const userId = req.user.id || req.user._id;
       resident = await Resident.findOne({ userId });
     }
@@ -75,8 +78,22 @@ export const assignRoom = async (req, res) => {
       return res.status(400).json({ message: "Room is Full" });
     }
 
+    if (isSelfAssign) {
+      const latestPaidBill = await Bill.findOne({
+        resident: resident._id,
+        room: room._id,
+        status: "paid",
+      }).sort({ createdAt: -1 });
+
+      if (!latestPaidBill) {
+        return res.status(400).json({
+          message: "Payment required before room assignment",
+        });
+      }
+    }
+
     room.residents.push(resident._id);
-    room.occupied += 1;
+    room.occupied = room.residents.length;
 
     resident.room = roomId;
 
