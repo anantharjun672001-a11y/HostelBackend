@@ -13,5 +13,6 @@ router.put("/:id",verifyToken,markAsRead);
 
 
 
-export default router
+export default router;
+
 
